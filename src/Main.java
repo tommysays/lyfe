@@ -30,6 +30,7 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 	private Cell[][] cells = null;
 	private Cell[][] original = null;
 	private final Color BG_COLOR = new Color(150,150,100);
+	private final Color GRID_COLOR = new Color(200,200,255);
 	private int xDisplace = 0, yDisplace = 0, buttonHeld = 0;
 	private boolean running = false;
 	public static Timer tmr;
@@ -151,12 +152,28 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 			return;
 		}
 		
+		//Paint cells:
 		for (int i = 0; i < cells.length; ++i){
 			for (int j = 0; j < cells[0].length; ++j){
 				int x = CELL_SIZE * (i + xDisplace);
 				int y = CELL_SIZE * (j + yDisplace);
 				cells[i][j].paint(g, x, y);
 			}
+		}
+
+		//Paint grid:
+		g.setColor(GRID_COLOR);
+		for (int i = 0; i < cells.length; ++i){
+			g.drawLine((i + xDisplace) * CELL_SIZE,
+				yDisplace * CELL_SIZE,
+				(i + xDisplace) * CELL_SIZE,
+				(cells[0].length - 1 + yDisplace) * CELL_SIZE);
+		}
+		for (int j = 0; j < cells[0].length; ++j){
+			g.drawLine(xDisplace * CELL_SIZE,
+				(j + yDisplace) * CELL_SIZE, 
+				(cells.length - 1 + xDisplace) * CELL_SIZE,
+				(j + yDisplace) * CELL_SIZE);
 		}
 	}
 	/**
