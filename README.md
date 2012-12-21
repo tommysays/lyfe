@@ -6,12 +6,8 @@ My own application of Conway's Game of Life.
 <hr>
 
 *To Run:*
-Using a terminal/command prompt:
-Navigate to the src/ directory.
-Compile the .java files with <code>javac \*.java</code>
-Run with <code>java Main</code>
 
-*Note: I'll have a .jar file eventually (as soon as I finish file i/o).*
+Just run the Lyfe.jar file.
 
 <hr>
 
