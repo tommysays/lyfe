@@ -1,28 +1,37 @@
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class Main extends JPanel implements ActionListener, MouseListener, MouseMotionListener{
-	public static int CELL_SIZE = 5;
-	private int interval = 20;
+public class Main extends JPanel implements ActionListener, MouseListener, MouseMotionListener, KeyListener{
+	public static int CELL_SIZE = 15;
+	private int interval = 80;
 	private Cell[][] cells = null;
+	private Cell[][] original = null;
 	private final Color BG_COLOR = new Color(150,150,100);
-	private int xDisplace = 0, yDisplace = 0;
-	private boolean go = false;
+	private int xDisplace = 0, yDisplace = 0, buttonHeld = 0;
+	private boolean running = false;
 	public static Timer tmr;
 	public static TimerTask task;
 	private ArrayList<Integer> survive, born;
@@ -32,7 +41,10 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		frm.setTitle("Lyfe: A Cell Automaton Simulator");
 		frm.setSize(600,600);
 		frm.setLayout(new BorderLayout());
+		frm.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
 		Main pnl = new Main();
+		pnl.initMain();
 
 		//Menu things:
 		JMenuBar bar = new JMenuBar();
@@ -58,6 +70,7 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		
 		//Option panel stuff:
 		JPanel optionPnl = new JPanel();
+		optionPnl.setLayout(new GridLayout(2, 3));
 		JButton start = new JButton("Start");
 		JButton stop = new JButton("Stop");
 		JButton zoomIn = new JButton("Zoom in");
@@ -76,26 +89,60 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		zoomOut.setActionCommand("out");
 		faster.setActionCommand("faster");
 		slower.setActionCommand("slower");
+		start.setFocusable(false);
+		stop.setFocusable(false);
+		zoomIn.setFocusable(false);
+		zoomOut.setFocusable(false);
+		faster.setFocusable(false);
+		slower.setFocusable(false);
+		optionPnl.add(start);
+		optionPnl.add(zoomIn);
+		optionPnl.add(faster);
+		optionPnl.add(stop);
+		optionPnl.add(zoomOut);
+		optionPnl.add(slower);
 
-		pnl.init();
 
 		frm.add(pnl);
+		frm.add(optionPnl, BorderLayout.SOUTH);
+		frm.addKeyListener(pnl);
 
 		frm.setVisible(true);
 	}
-	//Used to initialize things.
-	public void init(){
+	/**
+	 * Initializes variables and sets up listeners for the Main panel.
+	 */
+	public void initMain(){
+		addMouseListener(this);
+		addMouseMotionListener(this);
 		survive = new ArrayList<Integer>();
 		born = new ArrayList<Integer>();
 		tmr = new Timer();
+	}
+	/**
+	 * Starts ticking at the adjustable interval.
+	 */
+	public void startCycle(){
+		//Don't know if this is really needed.
+		stopCycle();
+		tmr.purge();
 		task = new TimerTask(){
 			public void run(){
 				tick();
 			}
 		};
 		tmr.schedule(task, 0, interval);
+		running = true;
 	}
-
+	/**
+	 * Stops the animation task.
+	 */
+	public void stopCycle(){
+		if (task != null){
+			task.cancel();
+		}
+		running = false;
+	}
 	public void paint(Graphics g){
 		g.setColor(BG_COLOR);
 		g.fillRect(0, 0, this.getWidth(), this.getHeight());
@@ -106,28 +153,22 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		
 		for (int i = 0; i < cells.length; ++i){
 			for (int j = 0; j < cells[0].length; ++j){
-				int x = CELL_SIZE * i + xDisplace;
-				int y = CELL_SIZE * j + yDisplace;
-
+				int x = CELL_SIZE * (i + xDisplace);
+				int y = CELL_SIZE * (j + yDisplace);
 				cells[i][j].paint(g, x, y);
 			}
 		}
 	}
-	private void updateTimer(){
-		task.cancel();
-		task = new TimerTask(){
-			public void run(){
-				tick();
-			}
-		};
-		tmr.schedule(task, 0, interval);
-	}
+	/**
+	 * Advances cells one generation.
+	 */
 	private void tick(){
-		if (cells == null || !go) {
+		if (cells == null) {
 			return;
 		}
 		updateAdjacent();
 		advance();
+		repaint();
 	}
 	/**
 	 * Updates cells' adjacent counters.
@@ -163,6 +204,7 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 				}
 			}
 		}
+		repaint();
 	}
 	/**
 	 * Advances all cells to their next states.
@@ -193,7 +235,8 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 	public void actionPerformed(ActionEvent ae){
 		String command = ae.getActionCommand();
 		if (command.equals("new")){
-			//TODO
+			doNew();
+
 		} else if (command.equals("open")){
 			//TODO
 		} else if (command.equals("save")){
@@ -201,48 +244,187 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		} else if (command.equals("exit")){
 			System.exit(0);
 		} else if (command.equals("start")){
-			//TODO
+			if (original != null){
+				for (int i = 0; i < original.length; ++i){
+					for (int j = 0; j < original[0].length; ++j){
+						cells[i][j].setState(original[i][j].getState());
+					}
+				}
+				startCycle();
+			}
 		} else if (command.equals("stop")){
-			//TODO
+			if (original != null){
+				for (int i = 0; i < original.length; ++i){
+					for (int j = 0; j < original[0].length; ++j){
+						cells[i][j].setState(original[i][j].getState());
+					}
+				}
+				stopCycle();
+			}
 		} else if (command.equals("out")){
-			if (CELL_SIZE > 1){
+			//TODO Change x/y diplacement to adjust better.
+			if (CELL_SIZE == 1){
+				return;
+			}
+			if (CELL_SIZE <= 5){
 				CELL_SIZE--;
+			} else {
+				CELL_SIZE -= 5;
 			}
 		} else if (command.equals("in")){
-			if (CELL_SIZE < 20){
+			if (CELL_SIZE < 5){
 				CELL_SIZE++;
+			} else if (CELL_SIZE < 40){
+				CELL_SIZE += 5;
 			}
 		} else if (command.equals("slower")){
-			if (interval < 640){
+			if (running && interval < 640){
 				interval *= 2;
-				updateTimer();
+				startCycle();
 			}
 		} else if (command.equals("faster")){
-			if (interval > 5){
+			if (running && interval > 5){
 				interval /= 2;
-				updateTimer();
+				startCycle();
 			}
 		}
+		repaint();
+	}
+	/**
+	 * Prompts user to enter specifications for a new Lyfe map, and resets the
+	 * app to those specs.
+	 */
+	public void doNew(){
+		JTextField ruleFld = new JTextField();
+		JTextField xFld = new JTextField();
+		JTextField yFld = new JTextField();
+		JLabel ruleLbl = new JLabel("RuleSet (as survive/born)\n(Ex. 23/3):");
+		JLabel xLbl = new JLabel("Width:");
+		JLabel yLbl = new JLabel("Height:");
+		JComponent[] cmp = new JComponent[]{
+			ruleLbl, ruleFld, xLbl, xFld, yLbl, yFld};
+		JOptionPane.showMessageDialog(null, cmp, "New Lyfe Map", JOptionPane.PLAIN_MESSAGE);
+		original = null;
+		cells = null;
+		survive = new ArrayList<Integer>();
+		born = new ArrayList<Integer>();
+		xDisplace = 0;
+		yDisplace = 0;
+		try{
+			String str = ruleFld.getText();
+			boolean found = false;
+			int i = 0;
+			//Written to purposefully throw exception if '/' not found.
+			while (!found){
+				if (str.charAt(i) == '/'){
+					found = true;
+				} else{
+					i++;
+				}
+			}
+			for (int j = 0; j < i; ++j){
+				survive.add(Integer.parseInt(str.charAt(j) + ""));
+			}
+			for (int j = i + 1; j < str.length(); ++j){
+				born.add(Integer.parseInt(str.charAt(j) + ""));
+			}
+			str = xFld.getText();
+			int width = Integer.parseInt(str);
+			str = yFld.getText();
+			int height = Integer.parseInt(str);
+			original = new Cell[width][height];
+			cells = new Cell[width][height];
+			for (int x = 0; x < width; ++x){
+				for (int y = 0; y < height; ++y){
+					original[x][y] = new Cell();
+					cells[x][y] = new Cell();
+				}
+			}
+		} catch(Exception e){
+			JOptionPane.showMessageDialog(null, "Invalid input!");
+		}
+		repaint();
 	}
 	public void mousePressed(MouseEvent me){
-
+		if (original == null){
+			return;
+		}
+		buttonHeld = me.getButton();
+		Point pt = me.getPoint();
+		int x = pt.x / CELL_SIZE + xDisplace;
+		int y = pt.y / CELL_SIZE + yDisplace;
+		if (x >= 0 && x < original.length && y >= 0 &&
+				y < original[0].length){
+			if (buttonHeld == MouseEvent.BUTTON1){
+				original[x][y].setState(1);
+				cells[x][y].setState(1);
+			} else if (buttonHeld == MouseEvent.BUTTON3){
+				original[x][y].setState(0);
+				cells[x][y].setState(0);
+			}
+		}
+		repaint();
 	}
 	public void mouseReleased(MouseEvent me){
 
 	}
-	public void mouseClicked(MouseEvent me){
-
-	}
-	public void mouseEntered(MouseEvent me){
-
-	}
-	public void mouseExited(MouseEvent me){
-
-	}
-	public void mouseMoved(MouseEvent me){
-
-	}
+	public void mouseClicked(MouseEvent me){}
+	public void mouseEntered(MouseEvent me){}
+	public void mouseExited(MouseEvent me){}
+	public void mouseMoved(MouseEvent me){}
 	public void mouseDragged(MouseEvent me){
-
+		if (original == null){
+			return;
+		}
+		int button = me.getButton();
+		Point pt = me.getPoint();
+		int x = pt.x / CELL_SIZE + xDisplace;
+		int y = pt.y / CELL_SIZE + yDisplace;
+		if (x >= 0 && x < original.length && y >= 0 &&
+				y < original[0].length){
+			if (buttonHeld == MouseEvent.BUTTON1){
+				original[x][y].setState(1);
+				cells[x][y].setState(1);
+			} else if (buttonHeld == MouseEvent.BUTTON3){
+				original[x][y].setState(0);
+				cells[x][y].setState(0);
+			}
+		}
+		repaint();
 	}
+	public void keyPressed(KeyEvent ke){
+		int code = ke.getKeyCode();
+		if (cells == null){
+			return;
+		}
+		switch(code){
+			case 38:
+			case 87:
+				if ((yDisplace + 1) * CELL_SIZE < this.getHeight()){
+					yDisplace++;
+				}
+				break;
+			case 40:
+			case 83:
+				if (yDisplace > 1 - cells[0].length){
+					yDisplace--;
+				}
+				break;
+			case 37:
+			case 65:
+				if ((xDisplace + 1) * CELL_SIZE < this.getWidth()){
+					xDisplace++;
+				}
+				break;
+			case 39:
+			case 68:
+				if (xDisplace > 1 - cells.length){
+					xDisplace--;
+				}
+				break;
+		}
+		repaint();
+	}
+	public void keyReleased(KeyEvent ke){}
+	public void keyTyped(KeyEvent ke){}
 }

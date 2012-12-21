@@ -4,7 +4,12 @@ import java.awt.Color;
 public class Cell{
 	private static final Color DEAD = Color.WHITE;
 	private static final Color ALIVE = Color.BLACK;
-	private int adjacent = 0, state = 0;
+	private int adjacent, state;
+
+	public Cell(){
+		state = 0;
+		adjacent = 0;
+	};
 	
 	public void paint(Graphics g, int x, int y){
 		switch(state){
@@ -28,6 +33,9 @@ public class Cell{
 	public void advance(int nextState){
 		state = nextState;
 		adjacent = 0;
+	}
+	public String toString(){
+		return ("State:" + state + "\tAdjacent:" + adjacent);
 	}
 	public void setAdjacent(int adjacent){
 		this.adjacent = adjacent;
