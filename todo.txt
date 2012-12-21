@@ -1,3 +1,6 @@
-[ ] mouse interaction
-[ ] survive/born
+[x] mouse interaction
+[x] survive/born
 [ ] file i/o
+	[ ] maybe support multiple file types
+[ ] reset button
+[ ] pause button

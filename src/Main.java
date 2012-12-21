@@ -351,8 +351,8 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		}
 		buttonHeld = me.getButton();
 		Point pt = me.getPoint();
-		int x = pt.x / CELL_SIZE + xDisplace;
-		int y = pt.y / CELL_SIZE + yDisplace;
+		int x = pt.x / CELL_SIZE - xDisplace;
+		int y = pt.y / CELL_SIZE - yDisplace;
 		if (x >= 0 && x < original.length && y >= 0 &&
 				y < original[0].length){
 			if (buttonHeld == MouseEvent.BUTTON1){
@@ -376,10 +376,9 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		if (original == null){
 			return;
 		}
-		int button = me.getButton();
 		Point pt = me.getPoint();
-		int x = pt.x / CELL_SIZE + xDisplace;
-		int y = pt.y / CELL_SIZE + yDisplace;
+		int x = pt.x / CELL_SIZE - xDisplace;
+		int y = pt.y / CELL_SIZE - yDisplace;
 		if (x >= 0 && x < original.length && y >= 0 &&
 				y < original[0].length){
 			if (buttonHeld == MouseEvent.BUTTON1){
