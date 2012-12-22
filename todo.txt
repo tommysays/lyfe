@@ -2,5 +2,6 @@
 [x] survive/born
 [ ] file i/o
 	[ ] maybe support multiple file types
-[ ] reset button
-[ ] pause button
+[x] clear button (clears the board)
+[x] pause button
+[ ] ajust zoom/displacement

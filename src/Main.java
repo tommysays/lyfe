@@ -25,7 +25,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class Main extends JPanel implements ActionListener, MouseListener, MouseMotionListener, KeyListener{
-	public static int CELL_SIZE = 15;
+	public static int CELL_SIZE = 10;
 	private int interval = 80;
 	private Cell[][] cells = null;
 	private Cell[][] original = null;
@@ -71,35 +71,45 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		
 		//Option panel stuff:
 		JPanel optionPnl = new JPanel();
-		optionPnl.setLayout(new GridLayout(2, 3));
+		optionPnl.setLayout(new GridLayout(2, 4));
 		JButton start = new JButton("Start");
 		JButton stop = new JButton("Stop");
 		JButton zoomIn = new JButton("Zoom in");
 		JButton zoomOut = new JButton("Zoom out");
 		JButton faster = new JButton("Faster");
 		JButton slower = new JButton("Slower");
+		JButton clear = new JButton("Clear");
+		JButton pause = new JButton("Pause");
 		start.addActionListener(pnl);
 		stop.addActionListener(pnl);
 		zoomIn.addActionListener(pnl);
 		zoomOut.addActionListener(pnl);
 		faster.addActionListener(pnl);
 		slower.addActionListener(pnl);
+		clear.addActionListener(pnl);
+		pause.addActionListener(pnl);
 		start.setActionCommand("start");
 		stop.setActionCommand("stop");
 		zoomIn.setActionCommand("in");
 		zoomOut.setActionCommand("out");
 		faster.setActionCommand("faster");
 		slower.setActionCommand("slower");
+		clear.setActionCommand("clear");
+		pause.setActionCommand("pause");
 		start.setFocusable(false);
 		stop.setFocusable(false);
 		zoomIn.setFocusable(false);
 		zoomOut.setFocusable(false);
 		faster.setFocusable(false);
 		slower.setFocusable(false);
+		clear.setFocusable(false);
+		pause.setFocusable(false);
 		optionPnl.add(start);
+		optionPnl.add(clear);
 		optionPnl.add(zoomIn);
 		optionPnl.add(faster);
 		optionPnl.add(stop);
+		optionPnl.add(pause);
 		optionPnl.add(zoomOut);
 		optionPnl.add(slower);
 
@@ -124,7 +134,6 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 	 * Starts ticking at the adjustable interval.
 	 */
 	public void startCycle(){
-		//Don't know if this is really needed.
 		stopCycle();
 		tmr.purge();
 		task = new TimerTask(){
@@ -163,13 +172,13 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 
 		//Paint grid:
 		g.setColor(GRID_COLOR);
-		for (int i = 0; i < cells.length; ++i){
+		for (int i = 0; i <= cells.length; ++i){
 			g.drawLine((i + xDisplace) * CELL_SIZE,
 				yDisplace * CELL_SIZE,
 				(i + xDisplace) * CELL_SIZE,
 				(cells[0].length - 1 + yDisplace) * CELL_SIZE);
 		}
-		for (int j = 0; j < cells[0].length; ++j){
+		for (int j = 0; j <= cells[0].length; ++j){
 			g.drawLine(xDisplace * CELL_SIZE,
 				(j + yDisplace) * CELL_SIZE, 
 				(cells.length - 1 + xDisplace) * CELL_SIZE,
@@ -261,7 +270,7 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 		} else if (command.equals("exit")){
 			System.exit(0);
 		} else if (command.equals("start")){
-			if (original != null){
+			if (original != null && !running){
 				for (int i = 0; i < original.length; ++i){
 					for (int j = 0; j < original[0].length; ++j){
 						cells[i][j].setState(original[i][j].getState());
@@ -289,27 +298,51 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 				CELL_SIZE -= 5;
 			}
 		} else if (command.equals("in")){
+			//TODO Change zoom to adjust better.
 			if (CELL_SIZE < 5){
 				CELL_SIZE++;
 			} else if (CELL_SIZE < 40){
 				CELL_SIZE += 5;
 			}
 		} else if (command.equals("slower")){
-			if (running && interval < 640){
+			if (interval < 640){
 				interval *= 2;
-				startCycle();
+				if (running){
+					startCycle();
+				}
 			}
 		} else if (command.equals("faster")){
-			if (running && interval > 5){
+			if (interval > 5){
 				interval /= 2;
+				if (running){
+					startCycle();
+				}
+			}
+		} else if (command.equals("clear")){
+			if (original == null){
+				return;
+			}
+			stopCycle();
+			for (int i = 0; i < original.length; ++i){
+				for (int j = 0; j < original.length; ++j){
+					original[i][j].setState(0);
+					cells[i][j].setState(0);
+				}
+			}
+		} else if (command.equals("pause")){
+			if (original == null){
+				return;
+			}
+			if (running){
+				stopCycle();
+			} else{
 				startCycle();
 			}
 		}
 		repaint();
 	}
 	/**
-	 * Prompts user to enter specifications for a new Lyfe map, and resets the
-	 * app to those specs.
+	 * Resets the app and prompts user for new specifications.
 	 */
 	public void doNew(){
 		JTextField ruleFld = new JTextField();
@@ -359,11 +392,13 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 			}
 		} catch(Exception e){
 			JOptionPane.showMessageDialog(null, "Invalid input!");
+			original = null;
+			cells = null;
 		}
 		repaint();
 	}
 	public void mousePressed(MouseEvent me){
-		if (original == null){
+		if (original == null || running){
 			return;
 		}
 		buttonHeld = me.getButton();
@@ -390,7 +425,7 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 	public void mouseExited(MouseEvent me){}
 	public void mouseMoved(MouseEvent me){}
 	public void mouseDragged(MouseEvent me){
-		if (original == null){
+		if (original == null || running){
 			return;
 		}
 		Point pt = me.getPoint();
