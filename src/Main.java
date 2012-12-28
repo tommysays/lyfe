@@ -176,12 +176,12 @@ public class Main extends JPanel implements ActionListener, MouseListener, Mouse
 			g.drawLine((i + xDisplace) * CELL_SIZE,
 				yDisplace * CELL_SIZE,
 				(i + xDisplace) * CELL_SIZE,
-				(cells[0].length - 1 + yDisplace) * CELL_SIZE);
+				(cells[0].length + yDisplace) * CELL_SIZE);
 		}
 		for (int j = 0; j <= cells[0].length; ++j){
 			g.drawLine(xDisplace * CELL_SIZE,
 				(j + yDisplace) * CELL_SIZE, 
-				(cells.length - 1 + xDisplace) * CELL_SIZE,
+				(cells.length + xDisplace) * CELL_SIZE,
 				(j + yDisplace) * CELL_SIZE);
 		}
 	}
